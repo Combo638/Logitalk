@@ -9,7 +9,7 @@ import os
 
 class LogiTalk(CTk):
     def __init__(self):
-        super().__init__(fg_color="#0707DA")
+        super().__init__(fg_color="#1a1a2e")
 
         self.geometry('400x300')
         self.title("LogiTalk")
@@ -20,7 +20,7 @@ class LogiTalk(CTk):
             width=30,
             height=300,
             corner_radius=0,
-            fg_color="#FBFF00"
+            fg_color="#16213e"
         )
 
         self.menu_frame.pack_propagate(False)
@@ -31,12 +31,13 @@ class LogiTalk(CTk):
 
         self.btn_menu = CTkButton(
             self.menu_frame,
-            text="Menu",
+            text="☰",
             width=30,
             command=self.toggle_show_menu,
-            fg_color="#F30707",
-            hover_color="#A2DD00",
-            text_color="white"
+            fg_color="#e94560",
+            hover_color="#ff6b9d",
+            text_color="white",
+            font=("Helvetica", 14, "bold")
         )
 
         self.btn_menu.pack()
@@ -51,7 +52,7 @@ class LogiTalk(CTk):
 #задній фон
         self.chat_field = CTkScrollableFrame(
             self,
-            fg_color="#13007C"
+            fg_color="#0f3460"
         )
 
         self.chat_field.place(x=0, y=0)
@@ -60,36 +61,39 @@ class LogiTalk(CTk):
             self,
             placeholder_text="Введіть повідомлення...",
             height=40,
-            fg_color="#A80092",
-            border_color="#A30088",
+            fg_color="#16213e",
+            border_color="#e94560",
+            border_width=2,
             text_color="white",
-            placeholder_text_color="#000000"
+            placeholder_text_color="#888888"
         )
 
         self.message_entry.place(x=0, y=0)
 #кнопка відкритя файлів і вибір 
         self.send_img = CTkButton(
             self,
-            text="",
+            text="🖼️",
             width=50,
             height=40,
             command=self.send_image,
-            fg_color="#5902BD",
-            hover_color="#2B0497",
-            text_color="white"
+            fg_color="#0f3460",
+            hover_color="#533483",
+            text_color="white",
+            font=("Helvetica", 16)
         )
 
         self.send_img.place(x=0, y=0)
 #кнобка вибору та відправки 
         self.send_button = CTkButton(
             self,
-            text="->",
+            text="➤",
             width=50,
             height=40,
             command=self.send_message,
-            fg_color="#00B38C",
-            hover_color="#01DFAF",
-            text_color="white"
+            fg_color="#e94560",
+            hover_color="#ff6b9d",
+            text_color="white",
+            font=("Helvetica", 14, "bold")
         )
 
         self.send_button.place(x=0, y=0)
@@ -126,7 +130,8 @@ class LogiTalk(CTk):
             self.label_name = CTkLabel(
                 self.menu_frame,
                 text="Ім'я",
-                text_color="#002C58"
+                text_color="#ff6b9d",
+                font=("Helvetica", 14, "bold")
             )
 
             self.label_name.pack(pady=20)
@@ -134,30 +139,33 @@ class LogiTalk(CTk):
             self.entry_name = CTkEntry(
                 self.menu_frame,
                 placeholder_text="Введіть ім'я",
-                fg_color="#001D46",
-                border_color="#B41111",
+                fg_color="#0f3460",
+                border_color="#e94560",
+                border_width=2,
                 text_color="white",
-                placeholder_text_color="#FDFEFF"
+                placeholder_text_color="#888888"
             )
 
-            self.entry_name.pack()
+            self.entry_name.pack(padx=10, pady=10)
 
             self.btn_name = CTkButton(
                 self.menu_frame,
                 text="Зберегти",
                 command=self.save_name,
-                fg_color="#0000E2",
-                hover_color="#0118EBFF",
-                text_color="white"
+                fg_color="#e94560",
+                hover_color="#ff6b9d",
+                text_color="white",
+                font=("Helvetica", 12, "bold")
             )
 
-            self.btn_name.pack()
+            self.btn_name.pack(pady=10)
     
     def save_name(self):
         self.username = self.entry_name.get() if self.entry_name.get() else "User"
 
         self.add_message(
-            f"Ваш нікнейм змінено на {self.username}"
+            f"Ваш нікнейм змінено на {self.username}",
+            is_system=True
         )
 
     def show_menu(self):
@@ -218,7 +226,7 @@ class LogiTalk(CTk):
         message = self.message_entry.get()
 
         if message:
-            self.add_message(message)
+            self.add_message(message, is_own=True)
 
             data = f"TEXT@{self.username}@{message}\n"
 
@@ -251,16 +259,36 @@ class LogiTalk(CTk):
                 break
         self.sock.close()
 
-    def add_message(self, message, img=None):
-        frame = CTkFrame(
-            self.chat_field,
-            fg_color="#02D45A"
-        )
+    def add_message(self, message, img=None, is_own=False, is_system=False):
+        if is_system:
+            frame = CTkFrame(
+                self.chat_field,
+                fg_color="#533483",
+                corner_radius=8
+            )
+            text_color = "#bb86fc"
+        elif is_own:
+            frame = CTkFrame(
+                self.chat_field,
+                fg_color="#e94560",
+                corner_radius=8
+            )
+            text_color = "white"
+        else:
+            frame = CTkFrame(
+                self.chat_field,
+                fg_color="#16213e",
+                corner_radius=8
+            )
+            text_color = "#00d4ff"
+        
         frame.pack(
-            padx=5,
-            anchor="w",
-            pady=3
+            padx=8,
+            anchor="e" if is_own else "w",
+            pady=5,
+            fill="x"
         )
+        
         wrap_size = self.winfo_width() - self.menu_frame.winfo_width() - 40
         if not img:
             CTkLabel(
@@ -268,10 +296,13 @@ class LogiTalk(CTk):
                 text=message,
                 wraplength=wrap_size,
                 justify="left",
-                text_color="#FFFFFF"
+                text_color=text_color,
+                font=("Helvetica", 11)
             ).pack(
-                pady=5,
-                padx=5)
+                pady=8,
+                padx=10,
+                fill="both",
+                expand=True)
         else:
             CTkLabel(
                 frame,
@@ -280,10 +311,13 @@ class LogiTalk(CTk):
                 image=img,
                 compound="top",
                 justify="left",
-                text_color="#FFFFFF"
+                text_color=text_color,
+                font=("Helvetica", 11)
             ).pack(
-                padx=5,
-                pady=5)
+                padx=10,
+                pady=8,
+                fill="both",
+                expand=True)
 
     def handle_line(self, line):
         if not line:
@@ -331,7 +365,8 @@ class LogiTalk(CTk):
                 CTkImage(
                     light_image=Image.open(filename),
                     size=(300, 300)
-                )
+                ),
+                is_own=True
             )
             self.sock.sendall(data.encode())
         except Exception as e:
