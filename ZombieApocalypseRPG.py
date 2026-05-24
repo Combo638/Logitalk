@@ -20,7 +20,7 @@ class ZombieApocalypseRPG(ctk.CTk):
             "exp": 0,
             "exp_to_level": 100,
             "strength": 10,
-            "speed": 5,
+            "speed": 3,
             "weapon": "pistol",
             "ammo": 30,
             "inventory": [],
@@ -48,6 +48,11 @@ class ZombieApocalypseRPG(ctk.CTk):
             {"x": 1000, "y": 500, "name": "Сергій", "dialog": "Зомбі повсюди!"}
         ]
         
+        # Керування
+        self.keys_pressed = set()
+        self.bind('<KeyPress>', self.key_press)
+        self.bind('<KeyRelease>', self.key_release)
+        
         # Стан гри
         self.game_running = True
         self.paused = False
@@ -64,6 +69,17 @@ class ZombieApocalypseRPG(ctk.CTk):
         self.mouse_y = 400
         
         self.game_loop()
+    
+    def key_press(self, event):
+        """Клавіша натиснута"""
+        self.keys_pressed.add(event.keysym.lower())
+        
+        if event.keysym == 'space':
+            self.toggle_pause()
+    
+    def key_release(self, event):
+        """Клавіша відпущена"""
+        self.keys_pressed.discard(event.keysym.lower())
     
     def create_ui(self):
         """Створити UI"""
@@ -174,6 +190,10 @@ class ZombieApocalypseRPG(ctk.CTk):
         if self.game_running and not self.paused:
             self.pickup_loot()
     
+    def toggle_pause(self):
+        """Пауза"""
+        self.paused = not self.paused
+    
     def shoot(self):
         """Стрільба"""
         if self.player["ammo"] > 0:
@@ -195,18 +215,19 @@ class ZombieApocalypseRPG(ctk.CTk):
                     z_dist = math.sqrt(z_dx**2 + z_dy**2)
                     
                     # Перевіряємо чи в межах прицілу
-                    angle = math.atan2(z_dy, z_dx) - math.atan2(dy, dx)
-                    if abs(angle) < 0.3 and z_dist < 300:
-                        damage = self.player["strength"] + random.randint(5, 15)
-                        zombie["health"] -= damage
-                        
-                        if zombie["health"] <= 0:
-                            self.zombies.remove(zombie)
-                            self.player["exp"] += 50
+                    if z_dist > 0:
+                        angle = math.atan2(z_dy, z_dx) - math.atan2(dy, dx)
+                        if abs(angle) < 0.3 and z_dist < 300:
+                            damage = self.player["strength"] + random.randint(5, 15)
+                            zombie["health"] -= damage
                             
-                            # Нові зомбі
-                            if len(self.zombies) < 20:
-                                self.spawn_zombies(1)
+                            if zombie["health"] <= 0:
+                                self.zombies.remove(zombie)
+                                self.player["exp"] += 50
+                                
+                                # Нові зомбі
+                                if len(self.zombies) < 20:
+                                    self.spawn_zombies(1)
     
     def pickup_loot(self):
         """Взяти лут"""
@@ -221,14 +242,38 @@ class ZombieApocalypseRPG(ctk.CTk):
                     self.player["exp"] += 25
                 
                 self.loot.remove(loot)
+                break
+    
+    def move_player(self):
+        """Рух гравця"""
+        if not self.game_running or self.paused:
+            return
+        
+        speed = self.player["speed"]
+        
+        # W - вверх
+        if 'w' in self.keys_pressed:
+            self.player["y"] = max(0, self.player["y"] - speed)
+        
+        # S - вниз
+        if 's' in self.keys_pressed:
+            self.player["y"] = min(self.world_height, self.player["y"] + speed)
+        
+        # A - влево
+        if 'a' in self.keys_pressed:
+            self.player["x"] = max(0, self.player["x"] - speed)
+        
+        # D - вправо
+        if 'd' in self.keys_pressed:
+            self.player["x"] = min(self.world_width, self.player["x"] + speed)
     
     def update_game(self):
         """Оновити гру"""
         if not self.game_running or self.paused:
             return
         
-        # Рух гравця (WASD)
-        keys = self.bind_all("<Key>", lambda e: e.char)
+        # Рух гравця
+        self.move_player()
         
         # Оновити зомбі
         for zombie in self.zombies[:]:
@@ -262,6 +307,7 @@ class ZombieApocalypseRPG(ctk.CTk):
         # Гра закінчилась?
         if self.player["health"] <= 0:
             self.game_over()
+            return
         
         # Оновити UI
         self.update_ui()
@@ -295,9 +341,9 @@ class ZombieApocalypseRPG(ctk.CTk):
         self.canvas.create_rectangle(0, 0, 1000, 620, fill="#0a0e27", outline="")
         
         # Сітка
-        for i in range(-self.camera_x, 1000, 50):
+        for i in range(-int(self.camera_x) % 50, 1000, 50):
             self.canvas.create_line(i, 0, i, 620, fill="#1a2a4a", width=1)
-        for i in range(-self.camera_y, 620, 50):
+        for i in range(-int(self.camera_y) % 50, 620, 50):
             self.canvas.create_line(0, i, 1000, i, fill="#1a2a4a", width=1)
         
         # NPC
@@ -339,7 +385,7 @@ class ZombieApocalypseRPG(ctk.CTk):
                 health_percent = zombie["health"] / 30
                 self.canvas.create_rectangle(sx-15, sy-20, sx-15+30*health_percent, sy-18, fill="#00ff00", outline="white", width=1)
         
-        # Гравець
+        # Гравець (центр екрану)
         px = 500
         py = 350
         self.canvas.create_oval(px-15, py-15, px+15, py+15, fill="#00d4ff", outline="#00ff00", width=3)
@@ -354,6 +400,7 @@ class ZombieApocalypseRPG(ctk.CTk):
         # Паузу
         if self.paused:
             self.canvas.create_text(500, 310, text="⏸️ ПАУЗА", font=("Arial", 40, "bold"), fill="#bb86fc")
+            self.canvas.create_text(500, 380, text="Натисніть SPACE щоб продовжити", font=("Arial", 14), fill="#bb86fc")
     
     def game_over(self):
         """Кінець гри"""
